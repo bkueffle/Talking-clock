@@ -17,25 +17,29 @@
 #include <TimerOne.h>
 
 /* Port Assignment */
-#define microphone 1 //Placeholder for microphone input port
+#define microphone A0 //Placeholder for microphone input port
 #define lcd_config_hr 2  // The interrupt pin for configuring hours on the LCD, attached to a physical button
 #define lcd_config_min 3 // The interrupt pin for configuring minutes on the LCD, attached to a physical button
 #define lcd_clk 4 // The clock provided to the LCD 2 wire interface for data latching
 #define lcd_dio 5 // The data i/o for sending serial commands to the LCD 2 wire interface
+#define TEST_MODE 1 // A pin used for testing
 
 /* Constants */
 // Determines the trip point for the microphone to detect a clap to start the talking process
 const unsigned int clap_sensitivity = 2048;
 
 // Swaps between military time and regular time
-const bool military_time = false;
+const bool military_time = true;
 
 //LCD Constants
 const int lcd_brightness = 0;
 
+// The number of milliseconds in the LCD button configuration debounce interval
+const unsigned short debounce_delay = 200;
+
 // The resolution of our clock/Timer ISR. This is a number in microseconds.
 // This does not neccessarily have to match the LCD update rate
-const unsigned long time_resolution = 500000;
+const unsigned long time_resolution = 100000;
 
 /* Global Variables */
 
@@ -45,7 +49,7 @@ const unsigned long time_resolution = 500000;
 int8_t TimeDisp[] = {0x00,0x00,0x00,0x00};
 
 // Update is a flag that alerts the rest of the system when the ISR has calculated a new value and may need to update the LCD
-bool Update;
+bool Update = true;
 // Enables the colon in the LCD
 unsigned char ClockPoint = 1;
 // Handles the ISR memory of time, these values may be updated at any point in the program
@@ -53,6 +57,9 @@ unsigned char subsecond = 0;
 unsigned char second = 0;
 unsigned char minute = 0;
 unsigned char hour = 12;
+
+unsigned int noise = 0;
+unsigned int loudest = 0;
 
 // Create the LCD display object
 TM1637 tm1637(lcd_clk,lcd_dio);
@@ -69,9 +76,14 @@ void setup() {
   // Sets initial brightness, data, address)
   tm1637.set(lcd_brightness);
   tm1637.init();
+  tm1637.point(POINT_ON);
   Timer1.initialize(time_resolution); // Set the ISR frequency
   Timer1.attachInterrupt(TimingISR);//declare the interrupt serve routine:TimingISR  
- 
+
+  // For testing
+  #if defined(TEST_MODE)
+    Serial.begin(9600);
+  #endif
   
 }
 
@@ -83,15 +95,18 @@ void loop() {
   {
     TimeUpdate();
     tm1637.display(TimeDisp);
+    #if defined(TEST_MODE)
+      Serial.print(String(TimeDisp[0]));
+      Serial.print(String(TimeDisp[1]));
+      Serial.print(':');
+      Serial.print(String(TimeDisp[2]));
+      Serial.println(String(TimeDisp[3]));
+    #endif
   }
-/*
- * Code for the input device will go here
-  if (analogRead(microphone) > clap_sensitivity)
-  {
-    //Start talking
-     
-  }
-*/
+  //Code for the input device
+  //noise = analogRead(microphone);
+  //if (noise > loudest) loudest=noise;
+  //Serial.println(loudest);
 
 }
 
@@ -123,15 +138,13 @@ void TimingISR()
     }
     subsecond = 0;  
   }
-  //Serial.println(second);
-  ClockPoint = (~ClockPoint) & 0x01;
+  
 }
 
 // Update the LCD with the time stored in the variables
 void TimeUpdate(void)
 {
-  if(ClockPoint)tm1637.point(POINT_ON);
-  else tm1637.point(POINT_OFF); 
+
   TimeDisp[0] = hour / 10;
   TimeDisp[1] = hour % 10;
   TimeDisp[2] = minute / 10;
@@ -142,22 +155,37 @@ void TimeUpdate(void)
 // Updates the minute by one every time the minute button is pushed
 void changeMinISR(void)
 {
-  minute ++;
-  if(minute == 60) minute = 0;
+  static unsigned long last_interrupt_time = 0;
+  if (millis() - last_interrupt_time > debounce_delay){
+    minute ++;
+    if(minute == 60) minute = 0;
+    // Wait for the button to be depressed
+    while(digitalRead(lcd_config_min) == 1);
+  }
+
+  last_interrupt_time = millis();
 }
 
 // Updates the hour by one every time the hour button is pushed
 void changeHourISR(void)
 {
-  hour ++;
-  if (military_time)
+  static unsigned long last_interrupt_time = 0;
+  if (millis() - last_interrupt_time > debounce_delay)
   {
-    if(hour == 24) hour = 0;
+    hour ++;
+    if (military_time)
+    {
+      if(hour == 24) hour = 0;
+    }
+    else 
+    {
+      if(hour == 13) hour = 1;
+    };
+    // Wait for the button to be depressed
+    while(digitalRead(lcd_config_min) == 1);
   }
-  else 
-  {
-    if(hour == 13) hour = 1;
-  };
+
+  last_interrupt_time = millis();
 }
 
 
