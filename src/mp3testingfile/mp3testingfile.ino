@@ -36,8 +36,13 @@ void setup()
 
 
 
+<<<<<<< HEAD
 int8_t TimeDisp[] = {0x00, 0x02, 0x00, 0x00};             ///// delete later when TimeDisp is function input
 int mode = 0;                                             ///// delete later when mode is function input
+=======
+int8_t TimeDisp[] = {0x00, 0x00, 0x00, 0x00};             ///// delete later when TimeDisp is function input
+int mode = 2;                                             ///// delete later when mode is function input
+>>>>>>> 5dc3111ca4d15fcc95d2a98a1e3a410d4717f89c
 int Hour = (TimeDisp[0] * 10 + TimeDisp[1]);              // Calculate hour value
 int Minute = (TimeDisp[2] * 10 + TimeDisp[3]);         // Calculate Minute value
 
@@ -51,7 +56,11 @@ void loop() //Uses Hour(0 to 24), Minute(0 to 59), and mode(0 to 2) as inputs.
 //// used to cycle through mode/hour/minutes in testing
 //  Mode = (Mode + 1) % 3;                    // cycle through modes (3 modes so far)
 // Hour = (Hour + 1) % 24;                   // cycle through hours (24 hours )
+<<<<<<< HEAD
   Minute = (Minute + 5) % 60;             // cycle through minutes for testing in 10s intervals
+=======
+//  Minute = (Minute + 5) % 60;             // cycle through minutes for testing in 10s intervals
+>>>>>>> 5dc3111ca4d15fcc95d2a98a1e3a410d4717f89c
 ////////////////////
 
 ////////////////////////////////////////////
