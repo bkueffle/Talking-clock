@@ -24,7 +24,7 @@ void setup()
   mySoftwareSerial.begin(9600);       // Set serial for DFPlayer-Minutei mp3 module
   myMP3.begin(mySoftwareSerial);      // Begin MP3
 
-  myMP3.volume (10);                  // Set Volume (0-30max)
+  myMP3.volume (20);                  // Set Volume (0-30max)
 
   myMP3.EQ(DFPLAYER_EQ_ROCK);         // Set EQ
   // myMP3.EQ(DFPLAYER_EQ_NORMAL);
@@ -36,8 +36,13 @@ void setup()
 
 
 
-int8_t TimeDisp[] = {0x00, 0x00, 0x05, 0x09};             ///// delete later when TimeDisp is function input
+<<<<<<< HEAD
+int8_t TimeDisp[] = {0x00, 0x02, 0x00, 0x00};             ///// delete later when TimeDisp is function input
 int mode = 0;                                             ///// delete later when mode is function input
+=======
+int8_t TimeDisp[] = {0x00, 0x00, 0x00, 0x00};             ///// delete later when TimeDisp is function input
+int mode = 2;                                             ///// delete later when mode is function input
+>>>>>>> 5dc3111ca4d15fcc95d2a98a1e3a410d4717f89c
 int Hour = (TimeDisp[0] * 10 + TimeDisp[1]);              // Calculate hour value
 int Minute = (TimeDisp[2] * 10 + TimeDisp[3]);         // Calculate Minute value
 
@@ -50,8 +55,12 @@ void loop() //Uses Hour(0 to 24), Minute(0 to 59), and mode(0 to 2) as inputs.
 ////////////////////
 //// used to cycle through mode/hour/minutes in testing
 //  Mode = (Mode + 1) % 3;                    // cycle through modes (3 modes so far)
-//  Hour = (Hour + 1) % 24;                   // cycle through hours (24 hours )
-//  Minute = (Minute + 1 ) % 60;             // cycle through minutes for testing in 10s intervals
+// Hour = (Hour + 1) % 24;                   // cycle through hours (24 hours )
+<<<<<<< HEAD
+  Minute = (Minute + 5) % 60;             // cycle through minutes for testing in 10s intervals
+=======
+//  Minute = (Minute + 5) % 60;             // cycle through minutes for testing in 10s intervals
+>>>>>>> 5dc3111ca4d15fcc95d2a98a1e3a410d4717f89c
 ////////////////////
 
 ////////////////////////////////////////////
@@ -65,11 +74,14 @@ void loop() //Uses Hour(0 to 24), Minute(0 to 59), and mode(0 to 2) as inputs.
     {                                                     /////////////////////////
       myMP3.playMp3Folder(0);
       delay(1000);
-        if(Minute/10 != 0 && Minute%10 != 0)            // special case where minutes is not '00', then we want to say hours as '00'. if hours = '00' and minutes = '00' we want it to read as 'zero hundred hours'.
-        {
-          myMP3.playMp3Folder(0);
-          delay(1000);
-        }
+          if(Minute/10 == 0 && Minute%10 == 0)            // special case where minutes is not '00', then we want to say hours as '00'. if hours = '00' and minutes = '00' we want it to read as 'zero hundred hours'.
+          {
+          }
+          else
+          {
+              myMP3.playMp3Folder(0);
+              delay(1000);
+          }
     }
     else if (Hour/10 == 0 && Hour%10 != 0)               // Case where Hour is '0X'. Want 'zero X' to be read
     {
