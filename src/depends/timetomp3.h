@@ -1,3 +1,3 @@
 #include <DFRobotDFPlayerMini.h>  // Library for DFPlayer (module to play MP3 files)
 
-void voicetime(DFRobotDFPlayerMini myMP3, int8_t time[], bool am, int mode, int volume);
+void TimeToVoice(DFRobotDFPlayerMini myMP3, uint8_t Hour, uint8_t Minute, uint8_t mode, uint8_t volume);

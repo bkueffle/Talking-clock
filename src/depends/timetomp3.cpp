@@ -1,56 +1,54 @@
 #include <timetomp3.h>
 #include <DFRobotDFPlayerMini.h>  // Library for DFPlayer (module to play MP3 files)
 
-void voicetime(DFRobotDFPlayerMini myMP3, int8_t time[], bool am, int mode, int volume)
+void TimeToVoice(DFRobotDFPlayerMini myMP3, uint8_t hour, uint8_t minute, uint8_t mode, uint8_t volume)
   {
-  unsigned int Hour = (time[0] * 10 + time[1]);    // Calculate hour value
-  unsigned int Minute = (time[2] * 10 + time[3]);  // Calculate Minute value
   myMP3.volume(volume);
 
-///////////// 24 Hour time (military time)//////////////////
+///////////// 24 hour time (military time)//////////////////
   if (mode == 0)                                  
   {
-  /// Hours///
-    if (Hour/10 == 0 && Hour%10 == 0)                     // Case where Hour is '00'. Want 'zero zero' to be read.
+  /// hours///
+    if (hour / 10 == 0 && hour % 10 == 0)                     // Case where hour is '00'. Want 'zero zero' to be read.
     {                                                    
       myMP3.playMp3Folder(0);
       
-      if((Minute / 10 != 0) && (Minute % 10 != 0))        // special case where minutes is not '00', then we want to say hours as '00'. if hours = '00' and minutes = '00' we want it to read as 'zero hundred hours'.
+      if((minute / 10 != 0) && (minute % 10 != 0))        // special case where minutes is not '00', then we want to say hours as '00'. if hours = '00' and minutes = '00' we want it to read as 'zero hundred hours'.
       {
         delay(1000);
         myMP3.playMp3Folder(0);
       }
 
     }
-    else if (Hour/10 == 0 && Hour%10 != 0)               // Case where Hour is '0X'. Want 'zero X' to be read
+    else if (hour/10 == 0 && hour%10 != 0)               // Case where hour is '0X'. Want 'zero X' to be read
     {
       myMP3.playMp3Folder(0);
       delay(1000);
-      myMP3.playMp3Folder(Hour%10);
+      myMP3.playMp3Folder(hour%10);
     }
     else                                                  // standard case: read hour as is (10 to 23)
     {
-      myMP3.playMp3Folder(Hour);
+      myMP3.playMp3Folder(hour);
     }
 
     // Wait for hours vocals to be read
     delay(1000);
 
 
-  /// Minutes///
-    if (Minute/10 == 0 && Minute%10 == 0)       // case where Minute is '00'; we want it to read 'hundred'
+  /// minutes///
+    if (minute/10 == 0 && minute%10 == 0)       // case where minute is '00'; we want it to read 'hundred'
     {
       myMP3.playMp3Folder(103);
     }
-    else if (Minute/10 == 0)                    // case where Minute is '0X'; we want it to read 'zero' and a number '1 through 9'
+    else if (minute/10 == 0)                    // case where minute is '0X'; we want it to read 'zero' and a number '1 through 9'
     {
-      myMP3.playMp3Folder(Minute/10);
+      myMP3.playMp3Folder(minute/10);
       delay(1000);
-      myMP3.playMp3Folder(Minute%10);
+      myMP3.playMp3Folder(minute%10);
     }
-    else                                        // if the special cases don't apply, read Minute values normally.
+    else                                        // if the special cases don't apply, read minute values normally.
     {
-      myMP3.playMp3Folder(Minute);
+      myMP3.playMp3Folder(minute);
     }
     delay(1000);
     myMP3.playMp3Folder(104);                   //say 'HOURS' sound clip at the end every time
@@ -61,21 +59,30 @@ void voicetime(DFRobotDFPlayerMini myMP3, int8_t time[], bool am, int mode, int 
 ///////////// AM/PM //////////////////////////
   else if (mode == 1)
   {
+    bool am = (hour < 12) ? true : false;
+    if (hour == 0)
+    {
+      hour = 12;
+    }
+    else if (hour >= 13)
+    {
+      hour -= 12;      
+    }
 
-    ///////////////SAY Hours///////////////
-    myMP3.playMp3Folder(Hour);
+    ///////////////SAY hours///////////////
+    myMP3.playMp3Folder(hour);
     delay(1000);
 
-    ///////////////SAY Minutes///////////////
-    if (Minute >= 10)                                 // read minutes as is
+    ///////////////SAY minutes///////////////
+    if (minute >= 10)                                 // read minutes as is
     {
-      myMP3.playMp3Folder(Minute);
+      myMP3.playMp3Folder(minute);
     }
-    else if (Minute < 10 && Minute != 0)
+    else if (minute < 10 && minute != 0)
     {
-      myMP3.playMp3Folder(102);                     //say 'oh' instead of 'zero' for Minute '0X'
+      myMP3.playMp3Folder(102);                     //say 'oh' instead of 'zero' for minute '0X'
       delay(1000);
-      myMP3.playMp3Folder(Minute);
+      myMP3.playMp3Folder(minute);
     }
     // Delay for minutes to be read
     delay(1000);
@@ -87,85 +94,85 @@ void voicetime(DFRobotDFPlayerMini myMP3, int8_t time[], bool am, int mode, int 
   
   ///////////////////MANDARIN LANGUAGE /////////////////////////
   //standard way of telling time in mandarin is to say:
-  //  'time of day'   'Hour #'    'Hours'     'Minute #'    'Minutes'
+  //  'time of day'   'hour #'    'hours'     'minute #'    'minutes'
  ///time of day///
   else if (mode == 2)
   {
     // Time of Day
-    if(Hour >= 0 && Hour < 3)          myMP3.playMp3Folder(1020);
-    else if (Hour >= 3 && Hour < 6)    myMP3.playMp3Folder(1021);
-    else if (Hour >= 6 && Hour  < 9)   myMP3.playMp3Folder(1022);
-    else if (Hour >= 9 && Hour  < 12)  myMP3.playMp3Folder(1023);
-    else if (Hour >= 12 && Hour  < 15) myMP3.playMp3Folder(1024);
-    else if (Hour >= 15 && Hour  < 18) myMP3.playMp3Folder(1025);
-    else if (Hour >= 18 && Hour  < 21) myMP3.playMp3Folder(1026);
-    else if (Hour >= 21 && Hour  < 24) myMP3.playMp3Folder(1027);
+    if(hour >= 0 && hour < 3)          myMP3.playMp3Folder(1020);
+    else if (hour >= 3 && hour < 6)    myMP3.playMp3Folder(1021);
+    else if (hour >= 6 && hour  < 9)   myMP3.playMp3Folder(1022);
+    else if (hour >= 9 && hour  < 12)  myMP3.playMp3Folder(1023);
+    else if (hour >= 12 && hour  < 15) myMP3.playMp3Folder(1024);
+    else if (hour >= 15 && hour  < 18) myMP3.playMp3Folder(1025);
+    else if (hour >= 18 && hour  < 21) myMP3.playMp3Folder(1026);
+    else if (hour >= 21 && hour  < 24) myMP3.playMp3Folder(1027);
 
     // Delay for time of day
     delay(1000);
     
-    // Hour #
-    if (Hour == 0 || Hour == 12)                                  //say 12 for 0 hour and 12 hour
+    // hour #
+    if (hour == 0 || hour == 12)                                  //say 12 for 0 hour and 12 hour
     {
       myMP3.playMp3Folder(1010);          
       delay(700);
       myMP3.playMp3Folder(1002);
     }
-    else if (Hour == 2 || Hour == 14) myMP3.playMp3Folder(1013); //case for 2's.  Theres two ways to say 2 in mandarin
-    else if (Hour == 1 || (Hour >= 3 && Hour <= 10)) myMP3.playMp3Folder(Hour+1000); //hours betwen 1-9 (not 2) read normally         
-    else if (Hour == 11 || Hour == 23)                            // say 11
+    else if (hour == 2 || hour == 14) myMP3.playMp3Folder(1013); //case for 2's.  Theres two ways to say 2 in mandarin
+    else if (hour == 1 || (hour >= 3 && hour <= 10)) myMP3.playMp3Folder(hour+1000); //hours betwen 1-9 (not 2) read normally         
+    else if (hour == 11 || hour == 23)                            // say 11
     {
       myMP3.playMp3Folder(1010);         
       delay(700);
       myMP3.playMp3Folder(1001);         
     }
-    else myMP3.playMp3Folder(Hour-12+1000);                       //say hours-12 to convert to standard
+    else myMP3.playMp3Folder(hour-12+1000);                       //say hours-12 to convert to standard
     delay(700);
     myMP3.playMp3Folder(1011);                                    // say hours 'dian'     
     delay(1000);
     
     
-    ///Minute///
+    ///minute///
   
-    if (Minute/10 == 0)                     //if minute 10's digit is '0' i.e. all '0X' cases
+    if (minute/10 == 0)                     //if minute 10's digit is '0' i.e. all '0X' cases
     {
-        if(Minute % 10 != 0)
+        if(minute % 10 != 0)
         //say '0X' i.e. 'ling #' 
         {
             myMP3.playMp3Folder(1000);              //say 0
             delay(700);
-            myMP3.playMp3Folder(Minute+1000);              //say #
+            myMP3.playMp3Folder(minute+1000);              //say #
             delay(700);
         }
     }
 
-    else if (Minute/10 == 1)                               //all teens cases '1X'
+    else if (minute/10 == 1)                               //all teens cases '1X'
     {
         myMP3.playMp3Folder(10+1000);                     //say 10 always
         delay(700);
-        if (Minute % 10 != 0)                                // if minute = 10, say only 10 and nothing else
+        if (minute % 10 != 0)                                // if minute = 10, say only 10 and nothing else
         {
-            myMP3.playMp3Folder(Minute%10+1000);         //say minute 1's digit 
+            myMP3.playMp3Folder(minute%10+1000);         //say minute 1's digit 
             delay(700);
         }
     }
       
     else 
     {
-        myMP3.playMp3Folder(Minute/10+1000);              //say minute 10's digit always
+        myMP3.playMp3Folder(minute/10+1000);              //say minute 10's digit always
         delay(700);
         myMP3.playMp3Folder(10+1000);                     //say 10 always
         delay(700);
         
-        if (Minute % 10 != 0)                               //say nothing if minute 1's digit ends in 0
+        if (minute % 10 != 0)                               //say nothing if minute 1's digit ends in 0
         {
-            myMP3.playMp3Folder(Minute%10+1000);              // say minute 1's digit if its not 0
+            myMP3.playMp3Folder(minute%10+1000);              // say minute 1's digit if its not 0
             delay(700);
         }
     }
 
     //condition for saying 'fen' 'minute'
-    if (Minute/10 != 0 || Minute%10 != 0)
+    if (minute/10 != 0 || minute%10 != 0)
     {
         myMP3.playMp3Folder(1012);                                    // say minutes 'fen'     
         delay(1000);
