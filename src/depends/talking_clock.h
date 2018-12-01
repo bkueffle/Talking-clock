@@ -31,28 +31,36 @@
 #define microphone A0 //Placeholder for microphone input port
 #define mp3_rx 7      // UART RX for mp3 player
 #define mp3_tx 6      // UART TX for mp3 player
-#define lcd_config_hr 3  // The interrupt pin for configuring hours on the LCD, attached to a physical button
-#define lcd_config_min 2 // The interrupt pin for configuring minutes on the LCD, attached to a physical button
-#define lcd_config_mode A1 // The pin change interrupt for incrementing the modes. Do not put any other circuits on D8-D13.
-#define lcd_clk 4 // The clock provided to the LCD 2 wire interface for data latching
-#define lcd_dio 5 // The data i/o for sending serial commands to the LCD 2 wire interface
+#define btn_config_hr 3  // The interrupt pin for configuring hours on the display, attached to a physical button
+#define btn_config_min 2 // The interrupt pin for configuring minutes on the display, attached to a physical button
+#define btn_config_mode A1 // The pin change interrupt for incrementing the modes. Do not put any other circuits on D8-D13.
+#define disp_clk 4 // The clock provided to the display 2 wire interface for data latching
+#define disp_dio 5 // The data i/o for sending serial commands to the display 2 wire interface
 
 /* Constants */
 
 // Determines the trip point for the microphone to detect a clap to start the talking process
-const uint16_t kClapSense = 400;
+//const uint16_t kClapSense = 100; works well for 680 ohm
+// 125 works okay for 1k ohm
+//const uint16_t kClapSense = 119;
+const uint16_t kClapSense = 146;
+
+// Width of one clap in milliseconds
+const uint8_t kClapWidth = 55;
+const uint16_t kSilentPeriod = 250;
+const uint16_t kDetectionInterval = 1250;
 
 // Determines MP3 volume (0-30)
-const uint8_t kVolume = 15;
+const uint8_t kVolume = 30;
 
-//LCD Constants
-const uint8_t kLCDBrightness = 2;
+// LED segment brightness from 0-7
+const uint8_t kLEDBrightness = 3;
 
-// The number of milliseconds in the LCD button configuration debounce interval
+// The number of milliseconds in the LED display button configuration debounce interval
 const uint8_t kDebounceDelay = 200;
 
 // The resolution of our clock/Timer ISR. This is a number in microseconds.
-// This does not neccessarily have to match the LCD update rate
+// This does not neccessarily have to match the LED segment update rate
 const uint32_t kTimeResolution = 500000;
 
 // The number of bytes avilable in the EEPROM, varies by microcontroller
@@ -66,6 +74,11 @@ const uint8_t kTimeAddr = 0x03; // The start of hte address space for hte time_d
 // The number of seconds before it's desired to change the EEPROM time starting address, this shouldn't be too low
 // If this number is set too low, special address 0x00 will be written too many times, and will be destroyed
 const uint16_t kStAddrUpdateTime = uint16_t(12) * 60 * 60; // After 12 hours, pointer to time_disp (time_addr) will be updated
+
+// We want the number of reads to be a power of two, to make division easy for processor. We also want it to be about 5ms worth of samples.
+// So if we take 1 MHz as our processing speed, we have 1M samples per second. So we want to divide 1M * .005s = 500 samples, so set
+// to 4096 samples = 4.096 ms sample.
+const uint16_t kNumReadsInAverage = 8;
 
 //      A
 //     ---

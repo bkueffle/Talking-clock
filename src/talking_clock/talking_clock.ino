@@ -21,9 +21,9 @@
 
 /* Global Variables */
 
-// LCD Global Variables for ISR
+// Display Global Variables for ISR
 
-// Bytes to display on the LCD, 0 - Hour digit 2, 1 - Hour digit 1, 2 - Min digit 2, 3 - Min digit 1
+// Bytes to display on the display, 0 - Hour digit 2, 1 - Hour digit 1, 2 - Min digit 2, 3 - Min digit 1
 uint8_t time_disp[] = {0x00,0x00,0x00,0x00};
 
 // The pointer to the time_disp data within the EEPROM
@@ -33,7 +33,12 @@ uint16_t time_addr = kTimeAddr;
 // After this rolls over, a new EEPROM address should be chosen so the EEPROM doesn't wear out
 uint32_t update_count = 0;
 
-// Update is a flag that alerts the rest of the system when the ISR has calculated a new value and may need to update the LCD
+// The rolling average value of samples
+float rolling_average = 0;
+uint8_t clap = 0;
+uint32_t mi = 0;
+
+// Update is a flag that alerts the rest of the system when the ISR has calculated a new value and may need to update the display
 bool Update = false;
 
 // Handles the ISR memory of time, these values may be updated at any point in the program
@@ -55,7 +60,7 @@ unsigned long int count = 0;
 unsigned long int maxnoise = 0;
 
 // Create the LED display object
-TM1637Display tm1637(lcd_clk,lcd_dio);
+TM1637Display tm1637(disp_clk,disp_dio);
 
 // Create the MP3 playing object
 DFRobotDFPlayerMini myMP3;
@@ -65,11 +70,11 @@ SoftwareSerial mp3_serial(mp3_rx, mp3_tx);
 
 void setup() {
   pinMode(microphone,INPUT);
-  pinMode(lcd_config_hr,INPUT);
-  pinMode(lcd_config_min,INPUT);
-  pinMode(lcd_config_mode,INPUT);
-  pinMode(lcd_clk,OUTPUT);
-  pinMode(lcd_dio,OUTPUT);
+  pinMode(btn_config_hr,INPUT);
+  pinMode(btn_config_min,INPUT);
+  pinMode(btn_config_mode,INPUT);
+  pinMode(disp_clk,OUTPUT);
+  pinMode(disp_dio,OUTPUT);
   Serial.begin(9600);
   // Mode and time_disp Initialization Code
   // The EEPROM will be read in order to grab the last displayed time/mode before shutdown
@@ -106,7 +111,7 @@ void setup() {
   EEPROM.put(kTimePointerAddr, time_addr);
   
   // Sets initial brightness
-  tm1637.setBrightness(kLCDBrightness);
+  tm1637.setBrightness(kLEDBrightness);
   
   Timer1.initialize(kTimeResolution); // Set the ISR frequency
   Timer1.attachInterrupt(TimingISR);//declare the interrupt serve routine:TimingISR  
@@ -117,8 +122,8 @@ void setup() {
   myMP3.EQ(DFPLAYER_EQ_NORMAL);
   
   // Attach external interrupts to change Minute/Hour
-  attachInterrupt(digitalPinToInterrupt(lcd_config_hr), changeHourISR, RISING);
-  attachInterrupt(digitalPinToInterrupt(lcd_config_min), changeMinISR, RISING);
+  attachInterrupt(digitalPinToInterrupt(btn_config_hr), changeHourISR, RISING);
+  attachInterrupt(digitalPinToInterrupt(btn_config_min), changeMinISR, RISING);
 
   #if defined(TEST_MODE)
     Serial.print("The EEPROM time address is: ");
@@ -154,36 +159,78 @@ void loop() {
   }
   
   // We don't have enough interrupts to include the Mode button as an interrupt, but changeMode can act as a fake interrupt
-  if (digitalRead(lcd_config_mode) == 1) changeMode();
+  if (digitalRead(btn_config_mode) == 1) changeMode();
   
   //Code for the input device
+  //#ifdef TEST_MODE
   noise = analogRead(microphone);
-  if (noise > maxnoise)
+  if (rolling_average > maxnoise)
   {
-    maxnoise = noise;
+    maxnoise = rolling_average;
     Serial.println(maxnoise);
   }
-  //Serial.println(analogRead(microphone));
-  if (noise > kClapSense)
+  //#endif
+  
+  // Calculate a rolling average of the microphone inputs, we generally want the number
+  // of elements computed in this average to be about 5 ms worth of stuff
+  rolling_average = (analogRead(microphone) + rolling_average*(kNumReadsInAverage - 1)) / kNumReadsInAverage;
+  
+  if (rolling_average > kClapSense)
   {
-    Serial.println("Noise > 1000");
-    delay(13);
-    noise = analogRead(microphone);
-    while ((noise < kClapSense) && (count < 10000))
+    Serial.println("Noise > Sense");
+    do
     {
-      count++;
-      delayMicroseconds(50);
-      noise = analogRead(microphone);
-      if (noise >= kClapSense) 
+      uint32_t last_period = millis();
+      while (millis() - last_period < kClapWidth)
       {
-        Serial.println("Clap Trig");
-        TimeToVoice(myMP3, hour, minute, mode, kVolume);
-        delay(150);
+        // This while loop runs during hte width of the clap, during htis time, the rolling average should be recorded
+        // It is expected that by the time we exit this loop, the rolling average should be a very low value (No sound should be recorded)
+        rolling_average = (analogRead(microphone) + rolling_average*(kNumReadsInAverage - 1)) / kNumReadsInAverage;
       }
-    }
+
+      while (millis() - last_period < kSilentPeriod)
+      {
+        // This loop expects to hear very little noise, if it does, then the noise is probability not a clap (may be a human voice)
+        rolling_average = (analogRead(microphone) + rolling_average*(kNumReadsInAverage - 1)) / kNumReadsInAverage;
+        if (rolling_average > kClapSense)
+        {
+          clap = 0;
+          rolling_average = 0; // Stop from entering the loop again immediately, this should give a few milliseconds of buffer
+          break;
+        }
+        else if (clap < 2)
+        {
+          clap = 1;
+        }
+
+      }
+      if (clap == 2)
+      {
+        //play mp3
+        TimeToVoice(myMP3, hour, minute, mode, kVolume);
+        clap = 0;
+        break;
+      }
+      if (clap == 1)
+      {
+        Serial.println("Clap 1 reached");
+        while (millis() - last_period < kDetectionInterval)
+        {
+          // This loop waits for the second clap
+          clap = 0;
+          rolling_average = (analogRead(microphone) + rolling_average*(kNumReadsInAverage - 1)) / kNumReadsInAverage;
+          if (rolling_average > kClapSense)
+          {
+            // Second clap detected within proper interval
+            clap = 2;
+            break;
+          }
+        }
+      }
+    } while (clap > 0);
   }
-  noise = 0;
-  count = 0;
+  //noise = 0;
+  //count = 0;
 
 }
 
@@ -260,7 +307,7 @@ void changeMinISR()
     minute ++;
     if(minute == 60) minute = 0;
     // Wait for the button to be depressed
-    while(digitalRead(lcd_config_min) == 1);
+    while(digitalRead(btn_config_min) == 1);
   }
 
   last_interrupt_time = millis();
@@ -275,7 +322,7 @@ void changeHourISR()
     hour ++;
     if (hour >= 24) hour = 0;
     // Wait for the button to be depressed
-    while(digitalRead(lcd_config_hr) == 1);
+    while(digitalRead(btn_config_hr) == 1);
   }
 
   last_interrupt_time = millis();
@@ -300,7 +347,7 @@ void changeMode()
     updateEepromTime();
 
     // Wait for the button to be depressed
-    while(digitalRead(lcd_config_mode) == 1);
+    while(digitalRead(btn_config_mode) == 1);
 
     // Update display with current hour now that we've changed modes
     TimeUpdate();
