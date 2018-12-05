@@ -183,14 +183,14 @@ void loop() {
       uint32_t last_period = millis();
       while (millis() - last_period < kClapWidth)
       {
-        // This while loop runs during hte width of the clap, during htis time, the rolling average should be recorded
+        // This while loop runs during the width of the clap, during this time, the rolling average should be recorded
         // It is expected that by the time we exit this loop, the rolling average should be a very low value (No sound should be recorded)
         rolling_average = (analogRead(microphone) + rolling_average*(kNumReadsInAverage - 1)) / kNumReadsInAverage;
       }
 
       while (millis() - last_period < kSilentPeriod)
       {
-        // This loop expects to hear very little noise, if it does, then the noise is probability not a clap (may be a human voice)
+        // This loop expects to hear very little noise, if it does, then the noise is probably not a clap (may be a human voice)
         rolling_average = (analogRead(microphone) + rolling_average*(kNumReadsInAverage - 1)) / kNumReadsInAverage;
         if (rolling_average > kClapSense)
         {
@@ -234,7 +234,7 @@ void loop() {
 
 }
 
-// The interrupt service routine for keeping time. This does not update the LCD by itself.
+// The interrupt service routine for keeping time. This does not update the display by itself.
 void TimingISR()
 {
   // During every interrupt, increment the subsecond, this is the smallest resolution of our clock
@@ -258,7 +258,7 @@ void TimingISR()
   
 }
 
-// Update the LCD with the time stored in the variables
+// Update the display with the time stored in the variables
 void TimeUpdate(void)
 {
   if (mode == 1)

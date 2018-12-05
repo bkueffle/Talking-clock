@@ -40,9 +40,6 @@
 /* Constants */
 
 // Determines the trip point for the microphone to detect a clap to start the talking process
-//const uint16_t kClapSense = 100; works well for 680 ohm
-// 125 works okay for 1k ohm
-//const uint16_t kClapSense = 119;
 const uint16_t kClapSense = 146;
 
 // Width of one clap in milliseconds
@@ -78,7 +75,7 @@ const uint16_t kStAddrUpdateTime = uint16_t(12) * 60 * 60; // After 12 hours, po
 // We want the number of reads to be a power of two, to make division easy for processor. We also want it to be about 5ms worth of samples.
 // So if we take 1 MHz as our processing speed, we have 1M samples per second. So we want to divide 1M * .005s = 500 samples, so set
 // to 4096 samples = 4.096 ms sample.
-const uint16_t kNumReadsInAverage = 8;
+const uint16_t kNumReadsInAverage = 8; //8
 
 //      A
 //     ---
